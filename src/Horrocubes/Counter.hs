@@ -28,13 +28,13 @@ This script keeps a counter and increases it everytime the eUTXO is spent.
 {-# LANGUAGE NamedFieldPuns             #-}
 {-# LANGUAGE ViewPatterns               #-}
 
-
 -- MODULE DEFINITION ----------------------------------------------------------
 
 module Horrocubes.Counter
 (
   counterScript,
-  counterScriptShortBs
+  counterScriptShortBs,
+  CounterParameter(..)
 ) where
 
 -- IMPORTS --------------------------------------------------------------------
@@ -87,7 +87,7 @@ counterDatum o f = do
     Datum d <- f dh
     PlutusTx.fromBuiltinData d
 
--- | Checks that the final balance of the new output matches the game rules.
+-- | Checks that the identity NFT is locked again in the contract.
 {-# INLINABLE isIdentityNftRelocked #-}
 isIdentityNftRelocked:: CounterParameter -> Value -> Bool
 isIdentityNftRelocked params valueLockedByScript = assetClassValueOf valueLockedByScript (identityNft params) == 1
@@ -122,7 +122,7 @@ mkCounterValidator parameters oldDatum _ ctx =
         isTransactionSignedByOwner :: Bool
         isTransactionSignedByOwner = txSignedBy info (ownerPkh parameters)
 
--- | The script instance of the cube. It contains the mkGameValidator function
+-- | The script instance of the counter. It contains the mkCounterValidator function
 --   compiled to a Plutus core validator script.
 counterInstance :: CounterParameter -> Scripts.TypedValidator Counter
 counterInstance counter = Scripts.mkTypedValidator @Counter
@@ -130,7 +130,7 @@ counterInstance counter = Scripts.mkTypedValidator @Counter
     where
         wrap = Scripts.wrapValidator @CounterDatum @()
 
--- | Gets the cube validator script that matches the given parameters.
+-- | Gets the counter validator script that matches the given parameters.
 counterValidator :: CounterParameter -> Validator
 counterValidator params = Scripts.validatorScript . counterInstance $ params
 
@@ -142,6 +142,6 @@ counterPlutusScript params = unValidatorScript $ counterValidator params
 counterScriptShortBs :: CounterParameter -> SBS.ShortByteString
 counterScriptShortBs params = SBS.toShort . LBS.toStrict $ serialise $ counterPlutusScript params
 
--- | Gets a serizlize plutus script from the given parameters.
+-- | Gets a serizlized plutus script from the given parameters.
 counterScript :: PubKeyHash -> AssetClass -> PlutusScript PlutusScriptV1
 counterScript pkh ac = PlutusScriptSerialised $ counterScriptShortBs $ CounterParameter { ownerPkh = pkh,  identityNft = ac }
