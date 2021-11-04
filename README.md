@@ -64,4 +64,29 @@ docker exec -w /work -e CARDANO_NODE_SOCKET_PATH=/ipc/node.socket docker_cardano
 
 
 
-docker exec -w /work -e CARDANO_NODE_SOCKET_PATH=/ipc/node.socket docker_cardano-node_1 cardano-cli transaction build --alonzo-era --testnet-magic 1097911063  --change-address $(cat counter/payment.addr) --tx-in-collateral 7d65ca46aca44532d94da57ec6b7297efdda2e523626f90bbdc780f3767202f2#0 --tx-in e2cd5091d4077f9d1011d1b5268eff1e408282930e4e346f007f4aee6665124b#1 --tx-in-script-file ./counter/out2.plutus --tx-in-datum-file ./datum_0.json --tx-in-redeemer-file ./datum_0.json --tx-out "addr_test1vpfvmwfl8eucm8rnsej9pehzh7628k53raczagz4uvzzm2csx7sfl+1000000" --tx-out-datum-embed-file ./datum_1.json  --protocol-params-file protocol.json --out-file tx-script2.build
+docker exec -w /work -e CARDANO_NODE_SOCKET_PATH=/ipc/node.socket docker_cardano-node_1 cardano-cli transaction build --alonzo-era --testnet-magic 1097911063  --change-address $(cat counter/payment.addr) --tx-in-collateral 7d65ca46aca44532d94da57ec6b7297efdda2e523626f90bbdc780f3767202f2#0 --tx-in e2cd5091d4077f9d1011d1b5268eff1e408282930e4e346f007f4aee6665124b#1 --tx-in-script-file ./counter/out2.plutus --tx-in-datum-file ./datum_0.json --tx-in-redeemer-file ./datum_0.json --tx-out "addr_test1wpuf4g5hwdw9sm0872jju6a0lu2cuckat8fkrhv6klsncggckm2c0+1000000" --tx-out-datum-embed-file ./datum_1.json  --protocol-params-file protocol.json --out-file tx-script2.build
+
+
+
+
+
+docker exec -w /work -e CARDANO_NODE_SOCKET_PATH=/ipc/node.socket docker_cardano-node_1 cardano-cli transaction build --alonzo-era --testnet-magic 1097911063  --change-address $(cat counter/payment.addr) --tx-in-collateral 7d65ca46aca44532d94da57ec6b7297efdda2e523626f90bbdc780f3767202f2#0 --tx-in 18013ebf67123b4259fb1cc469ad38b63e181de2c7eb5c755eb498792dda0fde#1 --tx-in-script-file ./counter/out2.plutus --tx-in-datum-file ./datum_0.json --tx-in-redeemer-file ./datum_0.json --tx-out "addr_test1wpuf4g5hwdw9sm0872jju6a0lu2cuckat8fkrhv6klsncggckm2c0+1000000" --tx-out-datum-embed-file ./datum_1.json  --protocol-params-file protocol.json --out-file tx-script2.build
+
+
+
+
+
+docker exec -w /work -e CARDANO_NODE_SOCKET_PATH=/ipc/node.socket docker_cardano-node_1 cardano-cli transaction build-raw  --alonzo-era --fee 500000 --tx-in-collateral 7d65ca46aca44532d94da57ec6b7297efdda2e523626f90bbdc780f3767202f2#0 --tx-in e2cd5091d4077f9d1011d1b5268eff1e408282930e4e346f007f4aee6665124b#1 --tx-in-script-file ./counter/out2.plutus --tx-in-execution-units "(491845099,1197950)" --tx-in-datum-file ./datum_0.json --tx-in-redeemer-file ./datum_0.json --tx-out "addr_test1wpuf4g5hwdw9sm0872jju6a0lu2cuckat8fkrhv6klsncggckm2c0+2000000" --tx-out-datum-embed-file ./datum_1.json  --protocol-params-file protocol.json --out-file tx-script2.build
+
+
+docker exec -w /work -e CARDANO_NODE_SOCKET_PATH=/ipc/node.socket docker_cardano-node_1 cardano-cli transaction build-raw  --alonzo-era --fee 500000 --tx-in 7d65ca46aca44532d94da57ec6b7297efdda2e523626f90bbdc780f3767202f2#0 --tx-in-collateral 7d65ca46aca44532d94da57ec6b7297efdda2e523626f90bbdc780f3767202f2#0 --tx-in e2cd5091d4077f9d1011d1b5268eff1e408282930e4e346f007f4aee6665124b#1 --tx-in-script-file ./counter/out2.plutus --tx-in-execution-units "(491845099,1297950)" --tx-in-datum-file ./datum_0.json --tx-in-redeemer-file ./datum_0.json --tx-out "addr_test1wpuf4g5hwdw9sm0872jju6a0lu2cuckat8fkrhv6klsncggckm2c0+2000000" --tx-out-datum-embed-file ./datum_1.json  --tx-out "addr_test1vpfvmwfl8eucm8rnsej9pehzh7628k53raczagz4uvzzm2csx7sfl+18159890"  --protocol-params-file protocol.json --out-file tx-script2.build
+
+
+
+docker exec -w /work -e CARDANO_NODE_SOCKET_PATH=/ipc/node.socket docker_cardano-node_1 cardano-cli transaction build --alonzo-era --testnet-magic 1097911063  --change-address $(cat counter/payment.addr) --tx-in 9a641585c53e8ff8032730c5d4677c20c5dc02deb09dc78d1f5651a93852df62#0 --tx-in-collateral 9a641585c53e8ff8032730c5d4677c20c5dc02deb09dc78d1f5651a93852df62#0 --tx-in 18013ebf67123b4259fb1cc469ad38b63e181de2c7eb5c755eb498792dda0fde#1 --tx-in-script-file ./counter/out2.plutus --tx-in-datum-file ./datum_0.json --tx-in-redeemer-file ./datum_0.json --tx-out "addr_test1wpuf4g5hwdw9sm0872jju6a0lu2cuckat8fkrhv6klsncggckm2c0+2000000" --tx-out-datum-embed-file ./datum_1.json  --protocol-params-file protocol.json --out-file tx-script2.build
+
+
+
+
+
+2000000 + 18659890
