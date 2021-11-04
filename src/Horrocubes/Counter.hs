@@ -2,7 +2,7 @@
 Module      : Horrocubes.Counter.
 Description : Plutus script that keeps track of an internal counter.
 License     : Apache-2.0
-Maintainer  : angel.castillob@protonmail.com
+Maintainer  : angel.castillo@horrocubes.io
 Stability   : experimental
 
 This script keeps a counter and increases it everytime the eUTXO is spent.
@@ -52,6 +52,8 @@ import           Data.Aeson               (FromJSON, ToJSON)
 import           GHC.Generics             (Generic)
 import qualified Ledger.Contexts          as Validation
 import           Text.Show
+import           PlutusTx.Builtins
+
 
 -- DATA TYPES -----------------------------------------------------------------
 
@@ -63,13 +65,9 @@ data CounterParameter = CounterParameter {
 
 PlutusTx.makeLift ''CounterParameter
 
--- | This Datum represents the state of the counter.
-data CounterDatum = CounterDatum {
-        counter :: !Integer     -- ^ The current counter value.
-    }
-    deriving Show
-
-PlutusTx.unstableMakeIsData ''CounterDatum
+data CounterDatum = Val Integer 
+    deriving (Generic, ToJSON, FromJSON)
+-- PlutusTx.unstableMakeIsData ''CounterDatum
 
 -- | The Counter script type. Sets the Redeemer and Datum types for this script.
 data Counter 
@@ -96,12 +94,9 @@ isIdentityNftRelocked params valueLockedByScript = assetClassValueOf valueLocked
 {-# INLINABLE mkCounterValidator #-}
 mkCounterValidator :: CounterParameter -> CounterDatum -> () -> ScriptContext -> Bool
 mkCounterValidator parameters oldDatum _ ctx = 
-    let oldCounterValue        = counter oldDatum
+    let oldCounterValue        = oldDatumIntegerValue
         isRightNexCounterValue = (newDatumValue == (oldCounterValue + 1))
-        isIdentityLocked       = isIdentityNftRelocked parameters valueLockedByScript
-    in traceIfFalse "Wrong counter value"           isRightNexCounterValue && 
-       traceIfFalse "Wrong balance"                 isIdentityLocked && 
-       traceIfFalse "Missing signature"             isTransactionSignedByOwner 
+    in traceIfFalse "Wrong counter value"           isRightNexCounterValue
     where
         info :: TxInfo
         info = scriptContextTxInfo ctx
@@ -114,7 +109,13 @@ mkCounterValidator parameters oldDatum _ ctx =
         newDatumValue :: Integer
         newDatumValue = case counterDatum ownOutput (`findDatum` info) of
             Nothing -> traceError "Counter output datum not found"
-            Just datum  -> counter datum
+            Just (Val datum)  -> datum
+
+        oldDatumIntegerValue :: Integer
+        oldDatumIntegerValue = case oldDatum of
+            Val datum -> datum
+            _ -> traceError "Counter output datum not found"
+
 
         valueLockedByScript :: Value
         valueLockedByScript = Validation.valueLockedBy info (Validation.ownHash ctx)

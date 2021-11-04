@@ -23,6 +23,14 @@ import qualified Plutus.V1.Ledger.Api  as Plutus
 import qualified Data.ByteString.Short as SBS
 import           Ledger.Value          as Value
 import Horrocubes.Counter
+import qualified PlutusTx
+import qualified Data.ByteString.Lazy  as LBS
+import           Data.Aeson            (encode)
+import qualified Plutus.V1.Ledger.Api as Plutus
+import           Plutus.V1.Ledger.Contexts
+import qualified Cardano.Api              as Script
+import qualified Cardano.Api.Shelley      as Script
+import qualified Data.ByteString.Lazy.Char8 as C
 
 -- DEFINITIONS ----------------------------------------------------------------
 
@@ -40,6 +48,7 @@ main = do
         Right () -> putStrLn $ "wrote NFT policy to file " ++ filePath
 
     writePlutusScript $ counterScriptShortBs (CounterParameter {identityNft = nft, ownerPkh = publicKey})
+    putStrLn $ show $ toPublicKeyHash publicKey'
 
 -- | Displays the execution budget.
 writePlutusScript :: SBS.ShortByteString -> IO ()
@@ -64,4 +73,7 @@ toTokenName tn = TokenName { unTokenName = getLedgerBytes $ fromString $ hex tn 
 
 -- | Creates a token name from a byte array.
 toPublicKeyHash :: String -> PubKeyHash
-toPublicKeyHash pkh = PubKeyHash { getPubKeyHash = getLedgerBytes $ fromString $ hex pkh }
+toPublicKeyHash pkh = PubKeyHash { getPubKeyHash = getLedgerBytes $ fromString $ pkh }
+
+-- | datumJSON :: CounterDatum -> String
+-- | datumJSON datum = C.unpack $ encode (scriptDataToJson ScriptDataJsonDetailedSchema $ Script.fromPlutusData (Plutus.toData datum))
