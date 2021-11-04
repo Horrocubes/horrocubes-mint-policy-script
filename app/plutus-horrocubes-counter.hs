@@ -48,7 +48,8 @@ main = do
         Right () -> putStrLn $ "wrote NFT policy to file " ++ filePath
 
     writePlutusScript $ counterScriptShortBs (CounterParameter {identityNft = nft, ownerPkh = publicKey})
-    putStrLn $ show $ toPublicKeyHash publicKey'
+    putStrLn $ show $ toCurrencySymbol currencySymbol'
+    putStrLn $ show $ nft
 
 -- | Displays the execution budget.
 writePlutusScript :: SBS.ShortByteString -> IO ()
@@ -65,7 +66,7 @@ writePlutusScript scriptSBS =
 
 -- | Creates a token name from a byte array.
 toCurrencySymbol :: String -> CurrencySymbol
-toCurrencySymbol symbol = CurrencySymbol { unCurrencySymbol = getLedgerBytes $ fromString $ hex symbol }
+toCurrencySymbol symbol = CurrencySymbol { unCurrencySymbol = getLedgerBytes $ fromString $ symbol }
 
 -- | Creates a token name from a byte array.
 toTokenName :: String -> TokenName

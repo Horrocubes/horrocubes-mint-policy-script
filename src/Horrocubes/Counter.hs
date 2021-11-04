@@ -54,7 +54,6 @@ import qualified Ledger.Contexts          as Validation
 import           Text.Show
 import           PlutusTx.Builtins
 
-
 -- DATA TYPES -----------------------------------------------------------------
 
 -- | The parameters for the counter contract.
@@ -67,7 +66,8 @@ PlutusTx.makeLift ''CounterParameter
 
 data CounterDatum = Val Integer 
     deriving (Generic, ToJSON, FromJSON)
--- PlutusTx.unstableMakeIsData ''CounterDatum
+
+PlutusTx.unstableMakeIsData ''CounterDatum
 
 -- | The Counter script type. Sets the Redeemer and Datum types for this script.
 data Counter 
@@ -96,7 +96,10 @@ mkCounterValidator :: CounterParameter -> CounterDatum -> () -> ScriptContext ->
 mkCounterValidator parameters oldDatum _ ctx = 
     let oldCounterValue        = oldDatumIntegerValue
         isRightNexCounterValue = (newDatumValue == (oldCounterValue + 1))
-    in traceIfFalse "Wrong counter value"           isRightNexCounterValue
+        isIdentityLocked       = isIdentityNftRelocked parameters valueLockedByScript
+    in traceIfFalse "Wrong counter value"           isRightNexCounterValue && 
+       traceIfFalse "Wrong balance"                 isIdentityLocked && 
+       traceIfFalse "Missing signature"             isTransactionSignedByOwner 
     where
         info :: TxInfo
         info = scriptContextTxInfo ctx
@@ -115,7 +118,6 @@ mkCounterValidator parameters oldDatum _ ctx =
         oldDatumIntegerValue = case oldDatum of
             Val datum -> datum
             _ -> traceError "Counter output datum not found"
-
 
         valueLockedByScript :: Value
         valueLockedByScript = Validation.valueLockedBy info (Validation.ownHash ctx)
