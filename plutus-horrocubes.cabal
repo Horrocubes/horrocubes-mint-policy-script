@@ -44,7 +44,7 @@ library
 
   hs-source-dirs:       src
 
-  exposed-modules:      Horrocubes.Counter
+  exposed-modules:      Horrocubes.Counter, Horrocubes.MintingScript
 
   build-depends:        aeson  
                       , bytestring
@@ -76,3 +76,20 @@ executable plutus-horrocubes-counter
                       , bytestring 
                       , text
 
+executable plutus-horrocubes-tokens
+  import:               base, project-config
+  hs-source-dirs:       app
+  main-is:              plutus-horrocubes-tokens.hs
+  ghc-options:          -threaded -rtsopts "-with-rtsopts=-T"
+  build-depends:        aeson
+                      , cardano-api
+                      , plutus-tx
+                      , cardano-ledger-alonzo
+                      , plutus-ledger
+                      , plutus-ledger-api
+                      , plutus-horrocubes
+                      , hex
+                      , bytestring 
+                      , text
+                      , base91
+                      , base58-bytestring

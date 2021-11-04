@@ -78,3 +78,6 @@ toPublicKeyHash pkh = PubKeyHash { getPubKeyHash = getLedgerBytes $ fromString $
 
 -- | datumJSON :: CounterDatum -> String
 -- | datumJSON datum = C.unpack $ encode (scriptDataToJson ScriptDataJsonDetailedSchema $ Script.fromPlutusData (Plutus.toData datum))
+
+-- Data.Aeson.encode $ scriptDataToJson ScriptDataJsonDetailedSchema $ (fromPlutusData $ builtinDataToData $ toBuiltinData (MyRedeemer ()))
+--"{\"constructor\":0,\"fields\":[{\"constructor\":0,\"fields\":[]}]}"
