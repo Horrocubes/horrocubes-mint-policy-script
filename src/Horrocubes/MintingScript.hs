@@ -6,10 +6,6 @@ Maintainer  : angel.castillob@protonmail.com
 Stability   : experimental
 
 This policy creates an NFT and uses an UTXO to make the NFT truly unique.
-
-This minting policy was taken from https://github.com/input-output-hk/lobster-challenge
-and sightly modified to the the token name as an outside parameter.
-
 -}
 
 -- LANGUAGE EXTENSIONS --------------------------------------------------------
@@ -49,42 +45,23 @@ import qualified Ledger.Typed.Scripts     as Scripts
 import           Ledger.Value             as Value
 import qualified PlutusTx
 import           PlutusTx.Prelude         hiding (Semigroup (..), unless)
-import qualified Plutus.V1.Ledger.Api as Plutus
-import qualified Data.ByteString.Char8 as C
-import qualified Data.ByteString
-import           Data.Char (ord)
-import           Data.List (elemIndex)
-import Data.Char
-import Data.Word
+import qualified Data.ByteString.Char8    as C
+import           PlutusTx.Builtins 
 import Data.Bits (shift, (.|.))
-import qualified Prelude
-import GHC.Generics
 
 -- DEFINITIONS ----------------------------------------------------------------
 
-{-# INLINABLE alphabetBase89 #-}
-alphabetBase89:: [Char]
-alphabetBase89 = "!~}|{zyxwvutsrqponmlkjihgfedcba_^]#[ZYXWVUTSRQPONMLKJIHGFEDCBA@?>=<;:9876543210/.-+*)($&%"
+{- HLINT ignore "Avoid lambda" -}
 
-{-# INLINABLE encodeBase #-}
-encodeBase :: Integer -> C.ByteString
-encodeBase value = C.pack encoded where
-  base     = 89
-  encoded  = expand (value `divMod` base) []
-  lookup n = alphabetBase89 !! (Prelude.fromIntegral n)
-  expand (dividend, remainder) xs
-    | (dividend >  0) = expand (dividend `divMod` base) result
-    | (dividend == 0 && remainder >  0) = result
-    | (dividend == 0 && remainder == 0) = xs
-    where result = [lookup remainder] ++ xs
+-- | Gets the Hash of the given UTXO.
+{-# INLINABLE utxoHash #-}
+utxoHash:: TxOutRef -> BuiltinByteString
+utxoHash utxo = getTxId $ txOutRefId utxo
 
-{-# INLINABLE slice #-}
-slice :: Prelude.Int -> Prelude.Int -> C.ByteString -> C.ByteString
-slice start len = C.take len . C.drop start
-
+-- | Reads 16 bytes from a BuiltinByteString and converts it to an integer.
 {-# INLINABLE readInt #-}
-readInt :: C.ByteString -> Integer
-readInt bs =     (byte 0 `shift` 120)
+readInt :: BuiltinByteString -> Integer
+readInt bs =     (byte 0  `shift` 120)
              .|. (byte 1  `shift` 112)
              .|. (byte 2  `shift` 104)
              .|. (byte 3  `shift` 96)
@@ -100,66 +77,68 @@ readInt bs =     (byte 0 `shift` 120)
              .|. (byte 13 `shift` 16)
              .|. (byte 14 `shift` 8)
              .|.  byte 15
-        where byte n = Prelude.fromIntegral $ ord (bs `C.index` n)
+        where byte n = indexByteString bs n
 
-{- HLINT ignore "Avoid lambda" -}
+-- | Encodes an Integer into a diffent base (ie base 64).
+{-# INLINABLE encodeBase #-}
+encodeBase :: BuiltinByteString -> Integer -> BuiltinByteString
+encodeBase charset value = encoded where
+  base     = lengthOfByteString charset
+  encoded  = expand (value `divMod` base) emptyByteString
+  lookup n = indexByteString charset n
+  expand (dividend, rem) xs
+    | (dividend >  0) = expand (dividend `divMod` base) result
+    | (dividend == 0 && rem >  0) = result
+    | (dividend == 0 && rem == 0) = xs
+    where result = consByteString (lookup rem) xs
 
 -- | Creates the minting script for the NFT.
 {-# INLINABLE mkNFTPolicy #-}
-mkNFTPolicy :: TokenName -> TxOutRef -> BuiltinData -> ScriptContext -> Bool
-mkNFTPolicy tn utxo _ ctx = traceIfFalse "Token posfix invalid" ((length (filter (\x -> Prelude.notElem x tokenEnding) tokenPosifx)) == 0) &&
-                            traceIfFalse "Wrong amount minted" checkMintedAmount
+mkNFTPolicy :: BuiltinByteString -> PubKeyHash -> BuiltinData -> ScriptContext -> Bool
+mkNFTPolicy charset _ _ ctx = traceIfFalse "Invalid Posfix" checkMintedAmount
   where
-    tokenName:: C.ByteString
-    tokenName = Plutus.fromBuiltin $ Plutus.unTokenName tn
-
-    tokenEnding:: [Char]
-    tokenEnding = C.unpack $ slice 10 20 tokenName
-
-    tokenPosifx:: [Char]
-    tokenPosifx = C.unpack $ encodeBase $ readInt $ Plutus.fromBuiltin $ getTxId $ txOutRefId utxo
-
     info :: TxInfo
     info = scriptContextTxInfo ctx
 
-    hasUTxO :: Bool
-    hasUTxO = any (\i -> txInInfoOutRef i == utxo) $ txInfoInputs info
+    expectedPosfix :: BuiltinByteString
+    expectedPosfix = encodeBase charset $ readInt $ sliceByteString 16 16 $ utxoHash getUTxO
+
+    actuallPosfix :: TokenName -> BuiltinByteString
+    actuallPosfix tn = sliceByteString 10 20 $ unTokenName tn
+
+    getUTxO :: TxOutRef
+    getUTxO = txInInfoOutRef $ ((txInfoInputs info) !! 0)
 
     checkMintedAmount :: Bool
     checkMintedAmount = case flattenValue (txInfoMint info) of
-        [(_, tn', amt)] -> tn' == tn && amt == 1
+        [(_, tn', amt)] -> (equalsByteString (actuallPosfix tn') expectedPosfix) && amt == 1
         _               -> False
 
 -- | Compiles the policy.
-nftPolicy :: TxOutRef -> TokenName -> Scripts.MintingPolicy
-nftPolicy utxo nftTokenName = mkMintingPolicyScript $
-    $$(PlutusTx.compile [|| \tn utxo' ->   Scripts.wrapMintingPolicy $ mkNFTPolicy tn utxo' ||])
+nftPolicy :: BuiltinByteString -> PubKeyHash -> Scripts.MintingPolicy
+nftPolicy charset pkh = mkMintingPolicyScript $
+    $$(PlutusTx.compile [|| \charset' pkh' -> Scripts.wrapMintingPolicy $ mkNFTPolicy charset' pkh' ||])
     `PlutusTx.applyCode`
-     PlutusTx.liftCode nftTokenName
+     PlutusTx.liftCode charset
     `PlutusTx.applyCode`
-     PlutusTx.liftCode utxo
-
+     PlutusTx.liftCode pkh
 
 -- | Generates the plutus script.
-nftPlutusScript :: TxOutRef -> TokenName -> Script
-nftPlutusScript utxo tn = unMintingPolicyScript $ nftPolicy utxo tn
+nftPlutusScript :: BuiltinByteString -> PubKeyHash -> Script
+nftPlutusScript charset pkh = unMintingPolicyScript $ nftPolicy charset pkh
 
 -- | Generates the NFT validator.
-nftValidator :: TxOutRef -> TokenName -> Validator
-nftValidator utxo tn = Validator $  nftPlutusScript utxo tn
+nftValidator :: BuiltinByteString -> PubKeyHash  -> Validator
+nftValidator charset pkh = Validator $  nftPlutusScript charset pkh
 
 -- | Serializes the contract in CBOR format.
-nftScriptAsCbor :: TxOutRef -> TokenName -> LB.ByteString
-nftScriptAsCbor utxo tn = serialise $ nftValidator utxo tn
+nftScriptAsCbor :: BuiltinByteString -> PubKeyHash -> LB.ByteString
+nftScriptAsCbor charset pkh = serialise $ nftValidator charset pkh
 
 -- | Serializes the contract in CBOR format.
-nftScriptShortBs :: TxOutRef -> BuiltinByteString -> SBS.ShortByteString
-nftScriptShortBs utxo tn = SBS.toShort . LB.toStrict $ nftScriptAsCbor utxo $ toTokenName tn
+nftScriptShortBs :: BuiltinByteString -> PubKeyHash -> SBS.ShortByteString
+nftScriptShortBs charset pkh = SBS.toShort . LB.toStrict $ nftScriptAsCbor charset pkh
 
 -- | Gets a serizlize plutus script from the given UTXO and token name.
-mintScript :: TxOutRef -> BuiltinByteString -> PlutusScript PlutusScriptV1
-mintScript utxo tn = PlutusScriptSerialised . SBS.toShort . LB.toStrict $ nftScriptAsCbor utxo $ toTokenName tn
-
--- | Creates a token name from a byte array.
-toTokenName :: BuiltinByteString -> TokenName
-toTokenName tn = TokenName { unTokenName = tn }
+mintScript :: BuiltinByteString -> PubKeyHash -> PlutusScript PlutusScriptV1
+mintScript charset pkh = PlutusScriptSerialised . SBS.toShort . LB.toStrict $ nftScriptAsCbor charset pkh

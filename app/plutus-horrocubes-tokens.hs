@@ -52,18 +52,27 @@ main = do
     --    Right () -> Prelude.putStrLn $ "wrote NFT policy to file " ++ filePath
 
     --writePlutusScript $ nftScriptShortBs utxo tokenName
-    let tka = Plutus.fromBuiltin $ Plutus.unTokenName tokenName
-    let tkaEnding = slice 10 20 tka
-    let tkposfix = encodeBase $ readInt $ Plutus.fromBuiltin $ parseUTxO utxo'
-    Prelude.putStrLn $ show $ tka
+    let tka = Plutus.unTokenName tokenName
+    let tkposfix = sliceByteString 16 16 $ tokenPosifx utxo
+    let tkaEnding = sliceByteString 10 20 $ tka
+    Prelude.putStrLn $ show $ encodeBase $ readInt tkposfix
     Prelude.putStrLn $ show $ tkaEnding
-    Prelude.putStrLn $ show $ (tkaEnding == tkposfix)
-    Prelude.putStrLn $ show $ tkposfix
-    Prelude.putStrLn $ show $ decodeBase $ encodeBase $ readInt $ Plutus.fromBuiltin $ parseUTxO utxo'    
+    Prelude.putStrLn $ show $ equalsByteString tkaEnding tkposfix
+    --let tkaEnding = slice 10 20 tka
+    --let tkposfix = encodeBase $ readInt $ Plutus.fromBuiltin $ parseUTxO utxo'
+    --Prelude.putStrLn $ show $ tka
+    --Prelude.putStrLn $ show $ tkaEnding
+    --Prelude.putStrLn $ show $ (tkaEnding == tkposfix)
+    --Prelude.putStrLn $ show $ tkposfix
+    --Prelude.putStrLn $ show $ decodeBase $ encodeBase $ readInt $ Plutus.fromBuiltin $ parseUTxO utxo'    
     --Prelude.putStrLn $ show $ encodeBase $ parseHex $ fromString $ utxo'
     --Prelude.putStrLn $ show $ decodeBase $ encodeBase $ parseHex $ fromString $ utxo'
-    Prelude.putStrLn $ printf "The value of %d in hex is: 0x%08x" (getInt $ decodeBase $ encodeBase $ readInt $ Plutus.fromBuiltin $ parseUTxO utxo'  ) (getInt $ decodeBase $ encodeBase $ readInt $ Plutus.fromBuiltin $ parseUTxO utxo'  )
+    --Prelude.putStrLn $ printf "The value of %d in hex is: 0x%08x" (getInt $ decodeBase $ encodeBase $ readInt $ Plutus.fromBuiltin $ parseUTxO utxo'  ) (getInt $ decodeBase $ encodeBase $ readInt $ Plutus.fromBuiltin $ parseUTxO utxo'  )
+    --Prelude.putStrLn $ show $ tkposfix
 
+tokenPosifx:: TxOutRef -> BuiltinByteString
+tokenPosifx utxo = Plutus.getTxId $ txOutRefId utxo
+--tokenPosifx = C.unpack $ encodeBase $ readInt $ Plutus.fromBuiltin $ getTxId $ txOutRefId utxo
 
 slice :: Int -> Int -> ByteString -> ByteString
 slice start len = C.take len . C.drop start
@@ -96,8 +105,8 @@ parseHex :: String -> Integer
 parseHex [] = 0
 parseHex hxStr = hexChar (Prelude.last hxStr) + 16 * parseHex (Prelude.init hxStr)
 
-readInt :: ByteString -> Integer
-readInt bs =     (byte 0 `shift` 120)
+readInt :: BuiltinByteString -> Integer
+readInt bs =     (byte 0  `shift` 120)
              .|. (byte 1  `shift` 112)
              .|. (byte 2  `shift` 104)
              .|. (byte 3  `shift` 96)
@@ -113,40 +122,29 @@ readInt bs =     (byte 0 `shift` 120)
              .|. (byte 13 `shift` 16)
              .|. (byte 14 `shift` 8)
              .|.  byte 15
-        where byte n = fromIntegral $ ord (bs `C.index` n)
+        where byte n = indexByteString bs n
 
 -- | Parse the UTXO from its hexadecimal string representation to and TxOutRef.
-parseUTxO :: String -> Plutus.BuiltinByteString
+parseUTxO :: String -> TxOutRef
 parseUTxO s =
   let
-    (x, _) = Prelude.span (/= '#') s
+    (x, y) = Prelude.span (/= '#') s
   in
-    getLedgerBytes $ fromString x
+    TxOutRef (TxId $ getLedgerBytes $ fromString x) $ read $ Prelude.tail y
 
-alphabetBase58:: String
-alphabetBase58 = "!~}|{zyxwvutsrqponmlkjihgfedcba_^]#[ZYXWVUTSRQPONMLKJIHGFEDCBA@?>=<;:9876543210/.-+*)($&%"
+alphabetBase89:: String
+alphabetBase89 = "!~}|{zyxwvutsrqponmlkjihgfedcba_^]#[ZYXWVUTSRQPONMLKJIHGFEDCBA@?>=<;:9876543210/.-+*)($&%"
 
-encodeBase :: Integer -> ByteString
-encodeBase value = C.pack encoded where
+encodeBase :: Integer -> BuiltinByteString
+encodeBase value = toBuiltin $ C.pack encoded where
   base     = 89
   encoded  = expand (value `divMod` base) []
-  lookup n = alphabetBase58 !! (fromIntegral n)
+  lookup n = alphabetBase89 !! (fromIntegral n)
   expand (dividend, remainder) xs
     | (dividend >  0) = expand (dividend `divMod` base) result
     | (dividend == 0 && remainder >  0) = result
     | (dividend == 0 && remainder == 0) = xs
     where result = [lookup remainder] ++ xs
-
-decodeBase :: ByteString -> Maybe Integer
-decodeBase value = decoded where
-  (_, decoded)   = Prelude.foldr reducer accumulator chars
-  chars          = (C.unpack value)
-  base           = 89
-  shift exponent = (* (base ^ exponent))
-  lookup char    = toInteger <$> Data.List.elemIndex char alphabetBase58
-  accumulator    = (0, Just 0)
-  reducer (char) (exponent, amount) =
-    (exponent + 1, (+) <$> amount <*> (shift exponent <$> lookup char))
 
 -- | Creates a token name from a byte array.
 toTokenName :: String -> Plutus.TokenName
