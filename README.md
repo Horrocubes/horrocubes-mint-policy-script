@@ -90,3 +90,22 @@ docker exec -w /work -e CARDANO_NODE_SOCKET_PATH=/ipc/node.socket docker_cardano
 
 
 2000000 + 18659890
+
+
+docker exec -w /work -e CARDANO_NODE_SOCKET_PATH=/ipc/node.socket docker_cardano-node_1 cardano-cli transaction build --alonzo-era --testnet-magic 1097911063  --change-address $(cat counter/payment.addr) --tx-in ab55a4351a5004dd3a8f50d22a782449af02c10cd68c40907eeb49cf0a3e4aa4#0 --tx-in-collateral ab55a4351a5004dd3a8f50d22a782449af02c10cd68c40907eeb49cf0a3e4aa4#0 --tx-in e578b13fb3b6033bd26a4632c0f93faa742f1c6ff232a3d64e4bce29f778f8ae#1 --tx-in-script-file ./counter/out2.plutus --tx-in-datum-file ./datum_0.json --tx-in-redeemer-file ./datum_0.json --tx-out "addr_test1wp9l0xxmvvvxsfhszwsf6t7f2ghvdf4r95hq3xjezzp4vgccftayp+2000000+1 38a2383fc478349ea5dd47c9bcb19591fe9ed700457b28d56ba3515c.HorrocardTheFoolHalloween2100017" --tx-out-datum-embed-file ./datum_1.json --required-signer counter/policy.skey --protocol-params-file protocol.json --out-file tx-script2.build
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+docker exec -w /work -e CARDANO_NODE_SOCKET_PATH=/ipc/node.socket docker_cardano-node_1 cardano-cli transaction build-raw --alonzo-era --fee 440821 --tx-in e578b13fb3b6033bd26a4632c0f93faa742f1c6ff232a3d64e4bce29f778f8ae#0 --tx-in-collateral e578b13fb3b6033bd26a4632c0f93faa742f1c6ff232a3d64e4bce29f778f8ae#0 --tx-out "addr_test1vpfvmwfl8eucm8rnsej9pehzh7628k53raczagz4uvzzm2csx7sfl+2246816+1 a35c6cb221f2c0fff4e892d81a1438dd38a78a218b1a51e0d971c10d.HCube09704wFZE7rQb>w/$" --mint "1 a35c6cb221f2c0fff4e892d81a1438dd38a78a218b1a51e0d971c10d.HCube09704wFZE7rQb>w/$" --minting-script-file ./counter/out2.plutus --mint-execution-units (491845099,1197950)" --mint-redeemer-value [] --protocol-params-file protocol.json --json-metadata-no-schema --metadata-json-file 5de524fd-bf08-4794-8847-f7fcb51c9862.metadata --out-file tx-script2.build

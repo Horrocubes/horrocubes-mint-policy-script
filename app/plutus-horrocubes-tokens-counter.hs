@@ -22,7 +22,7 @@ import Data.Hex
 import qualified Plutus.V1.Ledger.Api  as Plutus
 import qualified Data.ByteString.Short as SBS
 import           Ledger.Value          as Value
-import Horrocubes.MintingScript
+import Horrocubes.MintingScriptWithCounter
 import qualified PlutusTx
 import qualified Data.ByteString.Lazy  as LBS
 import           Data.Aeson            (encode)
@@ -40,23 +40,33 @@ import           PlutusTx.Builtins
 -- The user must provide three arguments: UTXO id, the token name and the output path.
 main :: IO ()
 main = do
-    [utxo', publicKey', filePath] <- getArgs
+    [currencySymbol', tokenName', publicKey', filePath] <- getArgs
     let publicKey = toPublicKeyHash publicKey'
         charset   = toCharset alphabetBase
+        nft       = Value.AssetClass ( toCurrencySymbol currencySymbol', toTokenName tokenName')
 
-    counterContractResult <- writeFileTextEnvelope filePath Nothing $ mintScript charset publicKey
+    counterContractResult <- writeFileTextEnvelope filePath Nothing $ mintScript charset publicKey nft
     case counterContractResult of
         Left err -> print $ displayError err
         Right () -> putStrLn $ "wrote NFT policy to file " ++ filePath
 
-    writePlutusScript $ nftScriptShortBs charset publicKey
+    writePlutusScript $ nftScriptShortBs charset publicKey nft
     putStrLn $ show $ charset
     putStrLn $ show $ publicKey
-    putStrLn $ show $ encodeBase charset $ parseUTxO utxo'   
-
+    putStrLn $ show $ nft 
+    putStrLn $ show $ padLeft charset $ encodeBase (toCharset alphabetBase) $ 2^32-1
+    putStrLn $ show (2^32)
 -- | Base charset.
 alphabetBase:: String
-alphabetBase = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+alphabetBase = "0123456789ABCDEF"
+
+-- | Creates a token name from a byte array.
+toCurrencySymbol :: String -> CurrencySymbol
+toCurrencySymbol symbol = CurrencySymbol { unCurrencySymbol = getLedgerBytes $ fromString $ symbol }
+
+-- | Creates a token name from a byte array.
+toTokenName :: String -> TokenName
+toTokenName tn = TokenName { unTokenName = getLedgerBytes $ fromString $ hex tn }
 
 -- | Creates a token name from a byte array.
 toPublicKeyHash :: String -> PubKeyHash
@@ -90,6 +100,11 @@ encodeBase charset value = encoded where
     | (dividend == 0 && rem >  0) = result
     | (dividend == 0 && rem == 0) = xs
     where result = consByteString (lookup rem) xs
+
+padLeft :: Plutus.BuiltinByteString -> Plutus.BuiltinByteString  -> Plutus.BuiltinByteString
+padLeft charset bs = if lengthOfByteString bs < 8
+  then  padLeft charset (consByteString (indexByteString charset 0) bs)
+  else bs
 
 -- | Parse the UTXO from its hexadecimal string representation to and TxOutRef.
 parseUTxO :: String -> Integer

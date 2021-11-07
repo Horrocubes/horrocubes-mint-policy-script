@@ -47,7 +47,7 @@ import qualified PlutusTx
 import           PlutusTx.Prelude         hiding (Semigroup (..), unless)
 import qualified Data.ByteString.Char8    as C
 import           PlutusTx.Builtins 
-import Data.Bits (shift, (.|.))
+import Horrocubes.Deserialisation
 
 -- DEFINITIONS ----------------------------------------------------------------
 
@@ -57,27 +57,6 @@ import Data.Bits (shift, (.|.))
 {-# INLINABLE utxoHash #-}
 utxoHash:: TxOutRef -> BuiltinByteString
 utxoHash utxo = getTxId $ txOutRefId utxo
-
--- | Reads 16 bytes from a BuiltinByteString and converts it to an integer.
-{-# INLINABLE readInt #-}
-readInt :: BuiltinByteString -> Integer
-readInt bs =     (byte 0  `shift` 120)
-             .|. (byte 1  `shift` 112)
-             .|. (byte 2  `shift` 104)
-             .|. (byte 3  `shift` 96)
-             .|. (byte 4  `shift` 88)
-             .|. (byte 5  `shift` 80)
-             .|. (byte 6  `shift` 72)
-             .|. (byte 7  `shift` 64)
-             .|. (byte 8  `shift` 56)
-             .|. (byte 9  `shift` 48)
-             .|. (byte 10 `shift` 40)
-             .|. (byte 11 `shift` 32)
-             .|. (byte 12 `shift` 24)
-             .|. (byte 13 `shift` 16)
-             .|. (byte 14 `shift` 8)
-             .|.  byte 15
-        where byte n = indexByteString bs n
 
 -- | Encodes an Integer into a diffent base (ie base 64).
 {-# INLINABLE encodeBase #-}
@@ -95,16 +74,16 @@ encodeBase charset value = encoded where
 -- | Creates the minting script for the NFT.
 {-# INLINABLE mkNFTPolicy #-}
 mkNFTPolicy :: BuiltinByteString -> PubKeyHash -> BuiltinData -> ScriptContext -> Bool
-mkNFTPolicy charset _ _ ctx = traceIfFalse "Invalid Posfix" checkMintedAmount
+mkNFTPolicy charset _ _ ctx = traceIfFalse "Invalid Postfix" checkMintedAmount
   where
     info :: TxInfo
     info = scriptContextTxInfo ctx
 
     expectedPosfix :: BuiltinByteString
-    expectedPosfix = encodeBase charset $ readInt $ sliceByteString 16 16 $ utxoHash getUTxO
+    expectedPosfix = encodeBase charset $ builtinByteStringToInt 0 0 $ sliceByteString 16 16 $ utxoHash getUTxO
 
     actuallPosfix :: TokenName -> BuiltinByteString
-    actuallPosfix tn = sliceByteString 10 20 $ unTokenName tn
+    actuallPosfix tn = sliceByteString 10 (lengthOfByteString expectedPosfix) $ unTokenName tn
 
     getUTxO :: TxOutRef
     getUTxO = txInInfoOutRef $ ((txInfoInputs info) !! 0)

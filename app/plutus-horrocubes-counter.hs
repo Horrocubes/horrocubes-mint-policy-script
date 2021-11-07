@@ -76,6 +76,14 @@ toTokenName tn = TokenName { unTokenName = getLedgerBytes $ fromString $ hex tn 
 toPublicKeyHash :: String -> PubKeyHash
 toPublicKeyHash pkh = PubKeyHash { getPubKeyHash = getLedgerBytes $ fromString $ pkh }
 
+-- | Parse the UTXO from its hexadecimal string representation to and TxOutRef.
+parseUTxO :: String -> TxOutRef
+parseUTxO s =
+  let
+    (x, y) = span (/= '#') s
+  in
+    TxOutRef (TxId $ getLedgerBytes $ fromString x) $ read $ tail y
+
 -- | datumJSON :: CounterDatum -> String
 -- | datumJSON datum = C.unpack $ encode (scriptDataToJson ScriptDataJsonDetailedSchema $ Script.fromPlutusData (Plutus.toData datum))
 
