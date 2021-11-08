@@ -54,7 +54,7 @@ main = do
     putStrLn $ show $ charset
     putStrLn $ show $ publicKey
     putStrLn $ show $ nft 
-    putStrLn $ show $ padLeft charset $ encodeBase (toCharset alphabetBase) $ 2^32-1
+    putStrLn $ show $ padLeft charset $ encodeBase (toCharset alphabetBase) $ 1
     putStrLn $ show (2^32)
 -- | Base charset.
 alphabetBase:: String

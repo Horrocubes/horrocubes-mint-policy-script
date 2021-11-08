@@ -55,10 +55,11 @@ import           Text.Show
 
 -- DATA TYPES -----------------------------------------------------------------
 
-{- HLINT ignore "Avoid lambda" -}
-
-data CounterDatum = Val Integer 
-    deriving (Generic, ToJSON, FromJSON)
+-- | The counter datum datatype.
+data CounterDatum = CounterDatum {
+        cdValue :: !Integer, -- ^ The current counter value.
+        cdLimit :: !Integer  -- ^ The value limit, after this limit is reached, this eUTXO can not be spent again.
+    } deriving (Show, Generic, FromJSON, ToJSON)
 
 PlutusTx.unstableMakeIsData ''CounterDatum
 
@@ -137,7 +138,7 @@ mkNFTPolicy charset pkh identityNft _ ctx  =
       datumIntegerValue :: Integer
       datumIntegerValue = case stateDatum findUtxoWithIdentityNft (`findDatum` info) of
         Nothing -> traceError "Counter output datum not found"
-        Just (Val datum)  -> datum
+        Just datum -> cdValue datum
 
  -- | Compiles the policy.
 nftPolicy :: BuiltinByteString -> PubKeyHash -> AssetClass -> Scripts.MintingPolicy
