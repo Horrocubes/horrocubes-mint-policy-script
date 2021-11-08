@@ -19,7 +19,7 @@ docker exec -w /work -e CARDANO_NODE_SOCKET_PATH=/ipc/node.socket docker_cardano
 
 
 # Create Build transaction
-docker exec -w /work -e CARDANO_NODE_SOCKET_PATH=/ipc/node.socket docker_cardano-node_1 cardano-cli transaction build --alonzo-era --testnet-magic 1097911063 --change-address $(cat counter/payment.addr) --tx-in b16833015a666489717a63a107ab2016a44ff863257c6d6e338f1b656f76292e#0 --tx-in cf901eb4b860669468c303809ba2e0a6da98a644a8274e997b1c2443235f51b9#0 --tx-out "addr_test1wp9l0xxmvvvxsfhszwsf6t7f2ghvdf4r95hq3xjezzp4vgccftayp+2000000+1 38a2383fc478349ea5dd47c9bcb19591fe9ed700457b28d56ba3515c.HorrocardTheFoolHalloween2100017" --tx-out-datum-embed-file ./datum_0.json --protocol-params-file protocol.json --out-file tx-script.build
+docker exec -w /work -e CARDANO_NODE_SOCKET_PATH=/ipc/node.socket docker_cardano-node_1 cardano-cli transaction build --alonzo-era --testnet-magic 1097911063 --change-address $(cat counter/payment.addr) --tx-in 27b147ae8875fa081b8704d6c0619a38eca2202821bedf5559f490a3bbc99437#0 --tx-in 27b147ae8875fa081b8704d6c0619a38eca2202821bedf5559f490a3bbc99437#1 --tx-out "addr_test1wpxfgvdljyf0fxk3qrmalu44knymrgzwq8qmazwj88clzxqpnle74+2000000+1 ba86415058081a628b54d29953d3f6dae2480ea9d9e2cc852a8ea449.HCube097043XEdfDgC4VJUq2ut1X7Fb4" --tx-out-datum-embed-file ./datum_0.json --protocol-params-file protocol.json --out-file tx-script.build
 
 # Query UTXO
 docker exec -w /work -e CARDANO_NODE_SOCKET_PATH=/ipc/node.socket docker_cardano-node_1 cardano-cli query utxo --address addr_test1wp8m5q4lhpur7sn7mr5qwzzt7syxksk4u0pq82euef5t5csx2ya6u --testnet-magic 1097911063
@@ -42,7 +42,7 @@ ee155ace9c40292074cb6aff8c9ccdd273c81648ff1149ef36bcea6ebb8a3e25
 
 
 # Create Build transaction
-docker exec -w /work -e CARDANO_NODE_SOCKET_PATH=/ipc/node.socket docker_cardano-node_1 cardano-cli transaction build-raw --alonzo-era --fee 500000 --tx-in 1215cc8fef96f600f0ef7a9b0250165c2167cb9c48ac0b7e07afe40e60675bdd#0 --tx-in b16833015a666489717a63a107ab2016a44ff863257c6d6e338f1b656f76292e#1 --tx-in-script-file ./counter/out2.plutus --tx-in-execution-units "(491845099,1197950)" --tx-in-datum-value 0 --tx-in-redeemer-value 0 --tx-in-collateral 1215cc8fef96f600f0ef7a9b0250165c2167cb9c48ac0b7e07afe40e60675bdd#0 --tx-out "addr_test1wp9l0xxmvvvxsfhszwsf6t7f2ghvdf4r95hq3xjezzp4vgccftayp+2000000+1 38a2383fc478349ea5dd47c9bcb19591fe9ed700457b28d56ba3515c.HorrocardTheFoolHalloween2100017" --tx-out-datum-embed-value 1 --protocol-params-file protocol.json --out-file tx-script2.build
+docker exec -w /work -e CARDANO_NODE_SOCKET_PATH=/ipc/node.socket docker_cardano-node_1 cardano-cli transaction build --alonzo-era --testnet-magic 1097911063  --change-address $(cat counter/payment.addr) --tx-in 400298971545e4abcebe89ca6a15f3cd6754056ce7744e49886f26a7dea0cf75#0 --tx-in-collateral 400298971545e4abcebe89ca6a15f3cd6754056ce7744e49886f26a7dea0cf75#0 --tx-in f5d6b061ca29f9fcc8f0d7bac3b5eb8562568aeadb3cf797bfb8d33e64e1cc5a#1 --tx-in-script-file ./counter/out2.plutus --tx-in-datum-file ./datum_2.json --tx-in-redeemer-file ./datum_2.json --tx-out "addr_test1wpxfgvdljyf0fxk3qrmalu44knymrgzwq8qmazwj88clzxqpnle74+2000000+1 ba86415058081a628b54d29953d3f6dae2480ea9d9e2cc852a8ea449.HCube097043XEdfDgC4VJUq2ut1X7Fb4" --tx-out-datum-embed-file ./datum_3.json --required-signer counter/policy.skey --protocol-params-file protocol.json --out-file tx-script2.build
 
 # Sign the transaction 
 docker exec -w /work -e CARDANO_NODE_SOCKET_PATH=/ipc/node.socket docker_cardano-node_1 cardano-cli transaction sign --tx-body-file tx-script2.build --signing-key-file counter/policy.skey --testnet-magic 1097911063 --out-file tx-script2.signed
@@ -92,7 +92,6 @@ docker exec -w /work -e CARDANO_NODE_SOCKET_PATH=/ipc/node.socket docker_cardano
 2000000 + 18659890
 
 
-docker exec -w /work -e CARDANO_NODE_SOCKET_PATH=/ipc/node.socket docker_cardano-node_1 cardano-cli transaction build --alonzo-era --testnet-magic 1097911063  --change-address $(cat counter/payment.addr) --tx-in ab55a4351a5004dd3a8f50d22a782449af02c10cd68c40907eeb49cf0a3e4aa4#0 --tx-in-collateral ab55a4351a5004dd3a8f50d22a782449af02c10cd68c40907eeb49cf0a3e4aa4#0 --tx-in e578b13fb3b6033bd26a4632c0f93faa742f1c6ff232a3d64e4bce29f778f8ae#1 --tx-in-script-file ./counter/out2.plutus --tx-in-datum-file ./datum_0.json --tx-in-redeemer-file ./datum_0.json --tx-out "addr_test1wp9l0xxmvvvxsfhszwsf6t7f2ghvdf4r95hq3xjezzp4vgccftayp+2000000+1 38a2383fc478349ea5dd47c9bcb19591fe9ed700457b28d56ba3515c.HorrocardTheFoolHalloween2100017" --tx-out-datum-embed-file ./datum_1.json --required-signer counter/policy.skey --protocol-params-file protocol.json --out-file tx-script2.build
 
 
 
@@ -103,9 +102,10 @@ docker exec -w /work -e CARDANO_NODE_SOCKET_PATH=/ipc/node.socket docker_cardano
 
 
 
+@001df3c9
 
 
 
 
 
-docker exec -w /work -e CARDANO_NODE_SOCKET_PATH=/ipc/node.socket docker_cardano-node_1 cardano-cli transaction build-raw --alonzo-era --fee 440821 --tx-in e578b13fb3b6033bd26a4632c0f93faa742f1c6ff232a3d64e4bce29f778f8ae#0 --tx-in-collateral e578b13fb3b6033bd26a4632c0f93faa742f1c6ff232a3d64e4bce29f778f8ae#0 --tx-out "addr_test1vpfvmwfl8eucm8rnsej9pehzh7628k53raczagz4uvzzm2csx7sfl+2246816+1 a35c6cb221f2c0fff4e892d81a1438dd38a78a218b1a51e0d971c10d.HCube09704wFZE7rQb>w/$" --mint "1 a35c6cb221f2c0fff4e892d81a1438dd38a78a218b1a51e0d971c10d.HCube09704wFZE7rQb>w/$" --minting-script-file ./counter/out2.plutus --mint-execution-units (491845099,1197950)" --mint-redeemer-value [] --protocol-params-file protocol.json --json-metadata-no-schema --metadata-json-file 5de524fd-bf08-4794-8847-f7fcb51c9862.metadata --out-file tx-script2.build
+docker exec -w /work -e CARDANO_NODE_SOCKET_PATH=/ipc/node.socket docker_cardano-node_1 cardano-cli transaction build --alonzo-era --testnet-magic 1097911063  --change-address $(cat counter/payment.addr) --tx-in e578b13fb3b6033bd26a4632c0f93faa742f1c6ff232a3d64e4bce29f778f8ae#0 --tx-in-collateral e578b13fb3b6033bd26a4632c0f93faa742f1c6ff232a3d64e4bce29f778f8ae#0 --tx-out "addr_test1vpfvmwfl8eucm8rnsej9pehzh7628k53raczagz4uvzzm2csx7sfl+2246816+1 ba86415058081a628b54d29953d3f6dae2480ea9d9e2cc852a8ea449.HCube097043XEdfDgC4VJUq2ut1X7Fb4" --mint "1 ba86415058081a628b54d29953d3f6dae2480ea9d9e2cc852a8ea449.HCube097043XEdfDgC4VJUq2ut1X7Fb4" --minting-script-file ./counter/out2.plutus --mint-redeemer-value [] --protocol-params-file protocol.json --json-metadata-no-schema --metadata-json-file 5de524fd-bf08-4794-8847-f7fcb51c9862.metadata --out-file tx-script2.build

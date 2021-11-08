@@ -34,7 +34,8 @@ module Horrocubes.Counter
 (
   counterScript,
   counterScriptShortBs,
-  CounterParameter(..)
+  CounterParameter(..),
+  CounterDatum(..)
 ) where
 
 -- IMPORTS --------------------------------------------------------------------
@@ -58,14 +59,17 @@ import           PlutusTx.Builtins
 
 -- | The parameters for the counter contract.
 data CounterParameter = CounterParameter {
-        ownerPkh    :: !PubKeyHash, -- ^ The transaction that spends this output must be signed by the private key
-        identityNft :: !AssetClass  -- ^ The NFT that identifies the correct eUTXO.
+        cpOwnerPkh    :: !PubKeyHash, -- ^ The transaction that spends this output must be signed by the private key
+        cpIdentityNft :: !AssetClass  -- ^ The NFT that identifies the correct eUTXO.
     } deriving (Show, Generic, FromJSON, ToJSON)
 
 PlutusTx.makeLift ''CounterParameter
 
-data CounterDatum = Val Integer 
-    deriving (Generic, ToJSON, FromJSON)
+-- | The counter datum datatype.
+data CounterDatum = CounterDatum {
+        cdValue :: !Integer, -- ^ The current counter value.
+        cdLimit :: !Integer  -- ^ The value limit, after this limit is reached, this eUTXO can not be spent again.
+    } deriving (Show, Generic, FromJSON, ToJSON)
 
 PlutusTx.unstableMakeIsData ''CounterDatum
 
@@ -88,18 +92,21 @@ counterDatum o f = do
 -- | Checks that the identity NFT is locked again in the contract.
 {-# INLINABLE isIdentityNftRelocked #-}
 isIdentityNftRelocked:: CounterParameter -> Value -> Bool
-isIdentityNftRelocked params valueLockedByScript = assetClassValueOf valueLockedByScript (identityNft params) == 1
+isIdentityNftRelocked params valueLockedByScript = assetClassValueOf valueLockedByScript (cpIdentityNft params) == 1
 
 -- | Creates the validator script for the outputs on this contract.
 {-# INLINABLE mkCounterValidator #-}
 mkCounterValidator :: CounterParameter -> CounterDatum -> () -> ScriptContext -> Bool
 mkCounterValidator parameters oldDatum _ ctx = 
-    let oldCounterValue        = oldDatumIntegerValue
-        isRightNexCounterValue = (newDatumValue == (oldCounterValue + 1))
+    let isRightNexCounterValue = (newDatumIntegerValue == (oldDatumIntegerValue + 1))
         isIdentityLocked       = isIdentityNftRelocked parameters valueLockedByScript
+        isLimitTheSame         = oldDatumLimitValue == newDatumLimitValue
+        isLimitNotReached      = newDatumIntegerValue < newDatumLimitValue
     in traceIfFalse "Wrong counter value"           isRightNexCounterValue && 
-       traceIfFalse "Wrong balance"                 isIdentityLocked && 
-       traceIfFalse "Missing signature"             isTransactionSignedByOwner 
+       traceIfFalse "Identity NFT missing"          isIdentityLocked && 
+       traceIfFalse "Missing signature"             isTransactionSignedByOwner &&
+       traceIfFalse "Limit value changed"           isLimitTheSame &&
+       traceIfFalse "Limit reached"                 isLimitNotReached
     where
         info :: TxInfo
         info = scriptContextTxInfo ctx
@@ -109,21 +116,28 @@ mkCounterValidator parameters oldDatum _ ctx =
             [o] -> o
             _   -> traceError "Expected exactly one output"
 
-        newDatumValue :: Integer
-        newDatumValue = case counterDatum ownOutput (`findDatum` info) of
+        newDatum :: CounterDatum
+        newDatum = case counterDatum ownOutput (`findDatum` info) of
             Nothing -> traceError "Counter output datum not found"
-            Just (Val datum)  -> datum
+            Just datum  -> datum
 
         oldDatumIntegerValue :: Integer
-        oldDatumIntegerValue = case oldDatum of
-            Val datum -> datum
-            _ -> traceError "Counter output datum not found"
+        oldDatumIntegerValue = cdValue oldDatum
+
+        oldDatumLimitValue :: Integer
+        oldDatumLimitValue = cdLimit oldDatum
+
+        newDatumIntegerValue :: Integer
+        newDatumIntegerValue = cdValue newDatum
+
+        newDatumLimitValue :: Integer
+        newDatumLimitValue = cdLimit newDatum
 
         valueLockedByScript :: Value
         valueLockedByScript = Validation.valueLockedBy info (Validation.ownHash ctx)
 
         isTransactionSignedByOwner :: Bool
-        isTransactionSignedByOwner = txSignedBy info (ownerPkh parameters)
+        isTransactionSignedByOwner = txSignedBy info (cpOwnerPkh parameters)
 
 -- | The script instance of the counter. It contains the mkCounterValidator function
 --   compiled to a Plutus core validator script.
@@ -147,4 +161,4 @@ counterScriptShortBs params = SBS.toShort . LBS.toStrict $ serialise $ counterPl
 
 -- | Gets a serizlized plutus script from the given parameters.
 counterScript :: PubKeyHash -> AssetClass -> PlutusScript PlutusScriptV1
-counterScript pkh ac = PlutusScriptSerialised $ counterScriptShortBs $ CounterParameter { ownerPkh = pkh,  identityNft = ac }
+counterScript pkh ac = PlutusScriptSerialised $ counterScriptShortBs $ CounterParameter { cpOwnerPkh = pkh,  cpIdentityNft = ac }

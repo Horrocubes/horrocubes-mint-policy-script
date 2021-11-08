@@ -101,6 +101,7 @@ encodeBase charset value = encoded where
     | (dividend == 0 && rem == 0) = xs
     where result = consByteString (lookup rem) xs
 
+-- | Zero pads a given hex value to 8 cahracters.
 padLeft :: Plutus.BuiltinByteString -> Plutus.BuiltinByteString  -> Plutus.BuiltinByteString
 padLeft charset bs = if lengthOfByteString bs < 8
   then  padLeft charset (consByteString (indexByteString charset 0) bs)

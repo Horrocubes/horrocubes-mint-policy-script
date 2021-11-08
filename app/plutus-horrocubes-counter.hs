@@ -47,9 +47,10 @@ main = do
         Left err -> print $ displayError err
         Right () -> putStrLn $ "wrote NFT policy to file " ++ filePath
 
-    writePlutusScript $ counterScriptShortBs (CounterParameter {identityNft = nft, ownerPkh = publicKey})
+    writePlutusScript $ counterScriptShortBs (CounterParameter {cpIdentityNft = nft, cpOwnerPkh = publicKey})
     putStrLn $ show $ toCurrencySymbol currencySymbol'
     putStrLn $ show $ nft
+    putStrLn $ datumJSON (CounterDatum {cdValue = 0, cdLimit = 3})
 
 -- | Displays the execution budget.
 writePlutusScript :: SBS.ShortByteString -> IO ()
@@ -84,8 +85,8 @@ parseUTxO s =
   in
     TxOutRef (TxId $ getLedgerBytes $ fromString x) $ read $ tail y
 
--- | datumJSON :: CounterDatum -> String
--- | datumJSON datum = C.unpack $ encode (scriptDataToJson ScriptDataJsonDetailedSchema $ Script.fromPlutusData (Plutus.toData datum))
+datumJSON :: CounterDatum -> String
+datumJSON datum = C.unpack $ encode (scriptDataToJson ScriptDataJsonDetailedSchema $ Script.fromPlutusData (Plutus.toData datum))
 
 -- Data.Aeson.encode $ scriptDataToJson ScriptDataJsonDetailedSchema $ (fromPlutusData $ builtinDataToData $ toBuiltinData (MyRedeemer ()))
 --"{\"constructor\":0,\"fields\":[{\"constructor\":0,\"fields\":[]}]}"
