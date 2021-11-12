@@ -24,7 +24,7 @@ This policy creates an NFT and uses an eUTXO with an internal counter to make th
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
- {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 -- MODULE DEFINITION ----------------------------------------------------------
 

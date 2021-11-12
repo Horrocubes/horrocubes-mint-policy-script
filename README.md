@@ -1,113 +1,96 @@
-# horrocubes-mint-policy-script
-New policy validator script for the horrocubes project
+<p align="center">
+  <img align="middle" src=
+  "https://github.com/Horrocubes/horrocubes-mint-policy-script/blob/main/assets/horrologo_black.png"
+  height="250" /></br>
+  <sup><sup><sup><sup>The Horrocubes logo is licensed under
+  <a href="https://creativecommons.org/licenses/by/3.0/">Creative
+  Commons 3.0 Attributions license</a></sup></sup></sup></sup>
+</p>
+ 
+ ![license](https://img.shields.io/badge/license-APACHE-blue.svg?longCache=true&style=flat) 
 
-# {"constructor":0,"fields":[{"int":0}]}  cb61a2430a1eef83214bc9b7c36e2d7df5edf0b2f0b00779a54e6603fcbc74af
+<p align="center"><b>Horrocubes Minting Policy Script</b></p>
 
-# Step 1 Init contract
+Horrocubes NFTs leverage the power of Plutus minting policy scripts to create true NFTs; once these NFTs are minted, it is impossible to create a duplicate. This minting policy makes use of several contracts to achieve the atomic creation of immutable NFTs while keeping the same policy id. 
 
-# Create Address
-docker exec -w /work -e CARDANO_NODE_SOCKET_PATH=/ipc/node.socket docker_cardano-node_1 cardano-cli address build --payment-verification-key-file counter/policy.vkey  --testnet-magic 1097911063
+If your Horrocube is postfixed with a hexadecimal value (e.g., Horrocubes00001x0FA488ED), it was created with this policy; otherwise, go over https://github.com/Horrocubes/cardano-nft-factory.
 
-# Query UTXO
-docker exec -w /work -e CARDANO_NODE_SOCKET_PATH=/ipc/node.socket docker_cardano-node_1 cardano-cli query utxo --address addr_test1vpfvmwfl8eucm8rnsej9pehzh7628k53raczagz4uvzzm2csx7sfl --testnet-magic 1097911063
 
-# Create Script Address
-docker exec -w /work -e CARDANO_NODE_SOCKET_PATH=/ipc/node.socket docker_cardano-node_1 cardano-cli address build --payment-script-file ./counter/counter.plutus --testnet-magic 1097911063
+## Counter Script
 
-# Create Datum Hash
-docker exec -w /work -e CARDANO_NODE_SOCKET_PATH=/ipc/node.socket docker_cardano-node_1 cardano-cli transaction hash-script-data --script-data-value 0
+The counter script trap an identity NFT inside (the only way to spend the output is to pay the NFT back to the script) and force the increment of the internal counter until it reaches a limit (after that, the output becomes unspendable), the starting value of the counter and the limit are defined when the output is first created.
 
+#### Pre-conditions:
 
-# Create Build transaction
-docker exec -w /work -e CARDANO_NODE_SOCKET_PATH=/ipc/node.socket docker_cardano-node_1 cardano-cli transaction build --alonzo-era --testnet-magic 1097911063 --change-address $(cat counter/payment.addr) --tx-in 400298971545e4abcebe89ca6a15f3cd6754056ce7744e49886f26a7dea0cf75#0 --tx-in 62aedb16d26984e34e6871494ba542b2f40a960c5a0838226e2c0244ce056da2#0 --tx-out "addr_test1wz6g45e97dkqs3zxfptcmqt7lrssjjxg8aa389y5xyuwj3swtmgve+2000000+1 06fa00b5ae593280e3d3a6693688523c85af4ff3033ddc8794ae311a.Horrocube00028" --tx-out-datum-embed-file ./datum_0.json --protocol-params-file protocol.json --out-file tx-script.build
+ - The transaction spending this output must be signed with the proper key (passed as a script parameter)
+ - The identity NFT must be present (this is indirectly validated by the fact that the script check that the identity NFT is being paid to itself)
 
-# Query UTXO
-docker exec -w /work -e CARDANO_NODE_SOCKET_PATH=/ipc/node.socket docker_cardano-node_1 cardano-cli query utxo --address addr_test1wp8m5q4lhpur7sn7mr5qwzzt7syxksk4u0pq82euef5t5csx2ya6u --testnet-magic 1097911063
+#### Post-Conditions:
 
-# Sign the transaction 
-docker exec -w /work -e CARDANO_NODE_SOCKET_PATH=/ipc/node.socket docker_cardano-node_1 cardano-cli transaction sign --tx-body-file tx-script.build --signing-key-file counter/policy.skey --testnet-magic 1097911063 --out-file tx-script.signed
+ - The field cdValue of the new datum must be equals to the field cdValue of the old datum plus 1 (value must be increased by exactly one)
+ - The field cdLimit of the new datum must equal to the field cdLimit of the old datum (value cant not be changed between datums)
+ - The field cdValue of the new datum must be less than the value of the field cdLimit (once cdValue reach cdLimit, the output can not be spent anymore)
+ - The identity NFT must be paid back to the original script.
 
-# Send Transaction
-docker exec -w /work -e CARDANO_NODE_SOCKET_PATH=/ipc/node.socket docker_cardano-node_1 cardano-cli transaction submit --testnet-magic 1097911063 --tx-file tx-script.signed
+## MintingScriptWithCounter Script
 
-# TX HASH 1 (init 0 value)
-b2997baf426caa94762e4baeed051ac13bad7994f2f3a43f8c43299d2ba8f050
+This script only approves the minting transaction if the identity NFT is present (the same one trapped in the counter eUTXO), the transaction is signed by the proper key, and then takes the datum from the output where the identity NFT is present, encodes it as a 32bit hex string and checks that the asset name of the new token being minted has this value as a postfix (last eight characters must match this hex value).
 
-# Step 2 increment counter
+#### Pre-conditions:
 
-# Create Datum Hash (value 1)
-docker exec -w /work -e CARDANO_NODE_SOCKET_PATH=/ipc/node.socket docker_cardano-node_1 cardano-cli transaction hash-script-data --script-data-value 1
+ - The transaction minting the asset must be signed with the proper key (passed as a script parameter)
+ - The identity NFT must be present (the script checks that the identity NFT is being spent)
+ - The last eight characters of the asset name of the token matches the hexadecimal representation of the counter (in 32bits)
 
-ee155ace9c40292074cb6aff8c9ccdd273c81648ff1149ef36bcea6ebb8a3e25
+#### Post-Conditions:
 
+ - Only one token with the right postfix value is being minted.
 
-# Create Build transaction
-docker exec -w /work -e CARDANO_NODE_SOCKET_PATH=/ipc/node.socket docker_cardano-node_1 cardano-cli transaction build --alonzo-era --testnet-magic 1097911063  --change-address $(cat counter/payment.addr) --tx-in 400298971545e4abcebe89ca6a15f3cd6754056ce7744e49886f26a7dea0cf75#0 --tx-in-collateral 400298971545e4abcebe89ca6a15f3cd6754056ce7744e49886f26a7dea0cf75#0 --tx-in 62aedb16d26984e34e6871494ba542b2f40a960c5a0838226e2c0244ce056da2#1 --tx-in-script-file ./counter/counter.plutus --tx-in-datum-file ./datum_0.json --tx-in-redeemer-file ./datum_0.json --tx-out "addr_test1wz6g45e97dkqs3zxfptcmqt7lrssjjxg8aa389y5xyuwj3swtmgve+2000000+1 ba86415058081a628b54d29953d3f6dae2480ea9d9e2cc852a8ea449.HCube097043XEdfDgC4VJUq2ut1X7Fb4" --tx-out-datum-embed-file ./datum_0.json --required-signer counter/policy.skey --protocol-params-file protocol.json --out-file tx-script2.build
+#### Policy-Id:
+`160b85e53e25ef49272c421f04b702bc32184d102865fd1dc8815cde`
 
-# Sign the transaction 
-docker exec -w /work -e CARDANO_NODE_SOCKET_PATH=/ipc/node.socket docker_cardano-node_1 cardano-cli transaction sign --tx-body-file tx-script2.build --signing-key-file counter/policy.skey --testnet-magic 1097911063 --out-file tx-script2.signed
+## Native Tokens
 
-# Send Transaction
-docker exec -w /work -e CARDANO_NODE_SOCKET_PATH=/ipc/node.socket docker_cardano-node_1 cardano-cli transaction submit --testnet-magic 1097911063 --tx-file tx-script2.signed
+We used ten native tokens to help us identify the correct eUTXO while calculating the right postfix:
 
+| Policy                                     | Policy Id                                                  | Token Name       | Purpose                             |
+| ------------------------------------------ | ---------------------------------------------------------- | ---------------- | ----------------------------------- |
+| [script](scripts/minterAgents.plutus)      | `cde924ed9494ed6be4ea7d4108588a86cbcf0a9a4ca4d5da19dc7aab` | `HorrocubesMinterAgent`     | Identifies the relevant UTxOs.       |
 
+Ten identity tokens were created to identify the relevant eUTXOs with the counter values, `HorrocubesMinterAgent`. They were minted with the [UtxoMintingScript](src/UtxoMintingScript.hs). This script ties the minting script with the eUTXO that was consumed during minting, which makes it impossible to re-mint the same ten tokens.
 
+All ten tokens were locked in different outputs with different starting and limit values to avoid overlapping, for example:
 
-docker exec -w /work -e CARDANO_NODE_SOCKET_PATH=/ipc/node.socket docker_cardano-node_1 cardano-cli transaction build-raw --alonzo-era --fee 500000 --tx-in 9a641585c53e8ff8032730c5d4677c20c5dc02deb09dc78d1f5651a93852df62#1 --tx-in-script-file ./counter/out2.plutus --tx-in-execution-units "(491845099,1197950)" --tx-in-datum-file ./datum_0.json --tx-in-redeemer-value [] --tx-in-collateral 185ae3f424a1e5551d1c5ae77bd4fe271d321b936952c4e12aebf8f07b7dcf54#0 --tx-out "addr_test1vpfvmwfl8eucm8rnsej9pehzh7628k53raczagz4uvzzm2csx7sfl+1000000" --tx-out-datum-embed-file ./datum_1.json --protocol-params-file protocol.json --out-file tx-script2.build
+ - eUTXO 1: starting value 0, limit 1000
+ - eUTXO 2: starting value 1000, limit 2000
+ - eUTXO 3: starting value 2000, limit 3000
 
-./datum_0.json
+The limit is not inclusive of the upper bound (per the script).
 
+## Initial counter values
 
+These are the initial datum values for all the eUTOX  in the counter contract:
 
+| `Datum Value`                                                    | `Datum Hash` | 
+| -----------------------------------------------------------------| ---------------| 
+|{"constructor":0,"fields":[{"int":0},{"int":429496729}]}          |`5d84fbf618fe74a270cc01b16023649905b965b8cc2563d3500dcdfa66108725`| 
+|{"constructor":0,"fields":[{"int":429496730},{"int":858993458}]}  |`80fda78cdb4a79fb622a2e60107a6f62a8fa1f8799024ac07292404b76df1794`| 
+|{"constructor":0,"fields":[{"int":858993459},{"int":1288490187}]} |`91217e85ef60f44186996cbae95a91ca213408b143608c631d0b6549eecb506c`| 
+|{"constructor":0,"fields":[{"int":1288490188},{"int":1717986916}]}|`2c8094e31625fe2c45d63fdba8beacc96629ed1474b55ebb67011d29fd33f950`| 
+|{"constructor":0,"fields":[{"int":1717986917},{"int":2147483645}]}|`e46d61b8a2d36680f4f50664587b3f1da5c03a8e20fb73cb25cb3aa760852947`| 
+|{"constructor":0,"fields":[{"int":2147483646},{"int":2576980374}]}|`0065c0f205a67d812180c05e4e484417aa5fdb3001d3a3872ef590abce5fdfb3`|
+|{"constructor":0,"fields":[{"int":2576980375},{"int":3006477103}]}|`655210e87dd93a7dc3840b13f1f6843ffeb61bcf2335cf41f53f8e7cafa16290`| 
+|{"constructor":0,"fields":[{"int":3006477104},{"int":3435973832}]}|`d04ee8b51c64892c41455a2a6d8c6bd9739489c088e33bb441812477e7f566b3`| 
+|{"constructor":0,"fields":[{"int":3435973836},{"int":3865470561}]}|`dabbff379296be4257e9d8bdeb1097ed7d8018e783895951733d9f620b3b759d`| 
+|{"constructor":0,"fields":[{"int":3865470562},{"int":4294967295}]}|`29dbba2ed5761d4b7f2e167399ec758fc5f088928e459edd87440e6fad680b8a`| 
 
-docker exec -w /work -e CARDANO_NODE_SOCKET_PATH=/ipc/node.socket docker_cardano-node_1 cardano-cli transaction build --alonzo-era --testnet-magic 1097911063  --change-address $(cat counter/payment.addr) --tx-in-collateral 7d65ca46aca44532d94da57ec6b7297efdda2e523626f90bbdc780f3767202f2#0 --tx-in e2cd5091d4077f9d1011d1b5268eff1e408282930e4e346f007f4aee6665124b#1 --tx-in-script-file ./counter/out2.plutus --tx-in-datum-file ./datum_0.json --tx-in-redeemer-value [] --tx-out "addr_test1vpfvmwfl8eucm8rnsej9pehzh7628k53raczagz4uvzzm2csx7sfl+1000000" --tx-out-datum-embed-file ./datum_1.json  --protocol-params-file protocol.json --out-file tx-script2.build
+All the counter outputs are located at the script address:
 
+`addr1wye3sfyn0h2yyh65dyzcqkrjnxtl3lk6qgv9g2n6aa3pg0qfjmdan`
 
+## Code
 
-docker exec -w /work -e CARDANO_NODE_SOCKET_PATH=/ipc/node.socket docker_cardano-node_1 cardano-cli transaction build --alonzo-era --testnet-magic 1097911063  --change-address $(cat counter/payment.addr) --tx-in-collateral 7d65ca46aca44532d94da57ec6b7297efdda2e523626f90bbdc780f3767202f2#0 --tx-in e2cd5091d4077f9d1011d1b5268eff1e408282930e4e346f007f4aee6665124b#1 --tx-in-script-file ./counter/out2.plutus --tx-in-datum-file ./datum_0.json --tx-in-redeemer-file ./datum_0.json --tx-out "addr_test1wpuf4g5hwdw9sm0872jju6a0lu2cuckat8fkrhv6klsncggckm2c0+1000000" --tx-out-datum-embed-file ./datum_1.json  --protocol-params-file protocol.json --out-file tx-script2.build
+You can look at the Plutus code [here](src/Horrocubes),
+where you will find the minting policies for the used native tokens and the validator enforcing the contract logic.
 
-
-
-
-
-docker exec -w /work -e CARDANO_NODE_SOCKET_PATH=/ipc/node.socket docker_cardano-node_1 cardano-cli transaction build --alonzo-era --testnet-magic 1097911063  --change-address $(cat counter/payment.addr) --tx-in-collateral 7d65ca46aca44532d94da57ec6b7297efdda2e523626f90bbdc780f3767202f2#0 --tx-in 18013ebf67123b4259fb1cc469ad38b63e181de2c7eb5c755eb498792dda0fde#1 --tx-in-script-file ./counter/out2.plutus --tx-in-datum-file ./datum_0.json --tx-in-redeemer-file ./datum_0.json --tx-out "addr_test1wpuf4g5hwdw9sm0872jju6a0lu2cuckat8fkrhv6klsncggckm2c0+1000000" --tx-out-datum-embed-file ./datum_1.json  --protocol-params-file protocol.json --out-file tx-script2.build
-
-
-
-
-
-docker exec -w /work -e CARDANO_NODE_SOCKET_PATH=/ipc/node.socket docker_cardano-node_1 cardano-cli transaction build-raw  --alonzo-era --fee 500000 --tx-in-collateral 7d65ca46aca44532d94da57ec6b7297efdda2e523626f90bbdc780f3767202f2#0 --tx-in e2cd5091d4077f9d1011d1b5268eff1e408282930e4e346f007f4aee6665124b#1 --tx-in-script-file ./counter/out2.plutus --tx-in-execution-units "(491845099,1197950)" --tx-in-datum-file ./datum_0.json --tx-in-redeemer-file ./datum_0.json --tx-out "addr_test1wpuf4g5hwdw9sm0872jju6a0lu2cuckat8fkrhv6klsncggckm2c0+2000000" --tx-out-datum-embed-file ./datum_1.json  --protocol-params-file protocol.json --out-file tx-script2.build
-
-
-docker exec -w /work -e CARDANO_NODE_SOCKET_PATH=/ipc/node.socket docker_cardano-node_1 cardano-cli transaction build-raw  --alonzo-era --fee 500000 --tx-in 7d65ca46aca44532d94da57ec6b7297efdda2e523626f90bbdc780f3767202f2#0 --tx-in-collateral 7d65ca46aca44532d94da57ec6b7297efdda2e523626f90bbdc780f3767202f2#0 --tx-in e2cd5091d4077f9d1011d1b5268eff1e408282930e4e346f007f4aee6665124b#1 --tx-in-script-file ./counter/out2.plutus --tx-in-execution-units "(491845099,1297950)" --tx-in-datum-file ./datum_0.json --tx-in-redeemer-file ./datum_0.json --tx-out "addr_test1wpuf4g5hwdw9sm0872jju6a0lu2cuckat8fkrhv6klsncggckm2c0+2000000" --tx-out-datum-embed-file ./datum_1.json  --tx-out "addr_test1vpfvmwfl8eucm8rnsej9pehzh7628k53raczagz4uvzzm2csx7sfl+18159890"  --protocol-params-file protocol.json --out-file tx-script2.build
-
-
-
-docker exec -w /work -e CARDANO_NODE_SOCKET_PATH=/ipc/node.socket docker_cardano-node_1 cardano-cli transaction build --alonzo-era --testnet-magic 1097911063  --change-address $(cat counter/payment.addr) --tx-in cb9dec86b66b82613f88b50f16a63e12701d6775c5f7055eaf2c19c2cb82dcf5#0 --tx-in-collateral cb9dec86b66b82613f88b50f16a63e12701d6775c5f7055eaf2c19c2cb82dcf5#0 --tx-in ab55a4351a5004dd3a8f50d22a782449af02c10cd68c40907eeb49cf0a3e4aa4#1 --tx-in-script-file ./counter/out2.plutus --tx-in-datum-file ./datum_0.json --tx-in-redeemer-file ./datum_0.json --tx-out "addr_test1wp9l0xxmvvvxsfhszwsf6t7f2ghvdf4r95hq3xjezzp4vgccftayp+2000000+1 38a2383fc478349ea5dd47c9bcb19591fe9ed700457b28d56ba3515c.HorrocardTheFoolHalloween2100017" --tx-out-datum-embed-file ./datum_1.json --required-signer counter/policy.vkey --protocol-params-file protocol.json --out-file tx-script2.build
-
-
-
-
-
-2000000 + 18659890
-
-
-
-
-
-
-
-
-
-
-
-
-@001df3c9
-
-
-
-
-
-docker exec -w /work -e CARDANO_NODE_SOCKET_PATH=/ipc/node.socket docker_cardano-node_1 cardano-cli transaction build --alonzo-era --testnet-magic 1097911063  --change-address $(cat counter/payment.addr) --tx-in 579a7343ccb3358e6d0840ede41428e49d52db0aaa25a20e52b90ed3d58f02f9#0 --tx-in-collateral 579a7343ccb3358e6d0840ede41428e49d52db0aaa25a20e52b90ed3d58f02f9#0 --tx-in  579a7343ccb3358e6d0840ede41428e49d52db0aaa25a20e52b90ed3d58f02f9#1 --tx-in-script-file ./counter/counter.plutus --tx-in-datum-file ./datum_0.json --tx-in-redeemer-file ./datum_0.json --tx-out "addr_test1wz6g45e97dkqs3zxfptcmqt7lrssjjxg8aa389y5xyuwj3swtmgve+2000000+1 06fa00b5ae593280e3d3a6693688523c85af4ff3033ddc8794ae311a.Horrocube00028" --tx-out-datum-embed-file ./datum_1.json --required-signer counter/policy.skey --tx-out "addr_test1vpfvmwfl8eucm8rnsej9pehzh7628k53raczagz4uvzzm2csx7sfl+1413762+1 8bc230df616dedc8f35f61998a76c22bc516817d531c22d8b5025653.Horrocube00279c00000001" --mint "1 8bc230df616dedc8f35f61998a76c22bc516817d531c22d8b5025653.Horrocube00279c00000001" --minting-script-file ./counter/mint.plutus --mint-redeemer-value [] --required-signer counter/policy.skey --protocol-params-file protocol.json --json-metadata-no-schema --metadata-json-file 5de524fd-bf08-4794-8847-f7fcb51c9862.metadata --out-file tx-script2.build
-
-
+You can build the code with `cabal build`.

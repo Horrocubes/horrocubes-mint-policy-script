@@ -50,7 +50,7 @@ main = do
     writePlutusScript $ counterScriptShortBs (CounterParameter {cpIdentityNft = nft, cpOwnerPkh = publicKey})
     putStrLn $ show $ toCurrencySymbol currencySymbol'
     putStrLn $ show $ nft
-    putStrLn $ datumJSON (CounterDatum {cdValue = 0, cdLimit = 3})
+    putStrLn $ datumJSON (CounterDatum {cdValue = 0, cdLimit = 3}) -- | Example datum.
 
 -- | Displays the execution budget.
 writePlutusScript :: SBS.ShortByteString -> IO ()
@@ -85,8 +85,6 @@ parseUTxO s =
   in
     TxOutRef (TxId $ getLedgerBytes $ fromString x) $ read $ tail y
 
+-- | Gets the JSON representation of the datum.
 datumJSON :: CounterDatum -> String
 datumJSON datum = C.unpack $ encode (scriptDataToJson ScriptDataJsonDetailedSchema $ Script.fromPlutusData (Plutus.toData datum))
-
--- Data.Aeson.encode $ scriptDataToJson ScriptDataJsonDetailedSchema $ (fromPlutusData $ builtinDataToData $ toBuiltinData (MyRedeemer ()))
---"{\"constructor\":0,\"fields\":[{\"constructor\":0,\"fields\":[]}]}"
