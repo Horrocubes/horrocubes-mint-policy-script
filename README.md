@@ -15,6 +15,7 @@ Horrocubes NFTs leverage the power of Plutus minting policy scripts to create tr
 
 If your Horrocube is postfixed with a hexadecimal value (e.g., Horrocubes00001x0FA488ED), it was created with this policy; otherwise, go over https://github.com/Horrocubes/cardano-nft-factory.
 
+There is a detailed explanation on the following youtube video: https://www.youtube.com/watch?v=vHraLcvECmQ
 
 ## Counter Script
 
